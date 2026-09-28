@@ -24,12 +24,34 @@ export default function SubmitPage() {
     setLoading(true);
 
     try {
-      if (formData.plan === "featured") {
-        alert("Redirecting to Stripe Checkout for Featured Listing ($49)...");
-      }
+      // Send tool submission straight to your inbox via Web3Forms (Free)
+      await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: "3d226848-18e3-4d03-b09e-31d79ff4b901",
+          subject: `New Tool Submission: ${formData.toolName} (${formData.plan.toUpperCase()})`,
+          from_name: "OpenStacker Submissions",
+          message: `
+            Tool Name: ${formData.toolName}
+            Website: ${formData.websiteUrl}
+            Category: ${formData.category}
+            Tagline: ${formData.description}
+            Open Source: ${formData.isOpenSource}
+            GitHub: ${formData.githubUrl || "N/A"}
+            Contact Email: ${formData.contactEmail}
+            Requested Plan: ${formData.plan}
+          `,
+        }),
+      });
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
@@ -56,7 +78,7 @@ export default function SubmitPage() {
             <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Submission Received!</h2>
             <p className="text-zinc-400 text-sm mb-6 max-w-md mx-auto">
-              Our team will review <span className="text-white font-semibold">{formData.toolName}</span> within 24 hours.
+              Our team will review <span className="text-white font-semibold">{formData.toolName}</span> within 24 hours. We&apos;ll notify you at <span className="text-green-400 font-semibold">{formData.contactEmail}</span> when it goes live.
             </p>
             <Link
               href="/directory"
@@ -99,7 +121,7 @@ export default function SubmitPage() {
                   $49 <span className="text-xs text-zinc-500 font-normal">one-time</span>
                 </div>
                 <p className="text-zinc-500 text-xs leading-relaxed">
-                  Pinned to the top of your category page with a &quot;Featured&quot; badge.
+                  Pinned to top of category page with a &quot;Featured&quot; badge. Priority review.
                 </p>
               </div>
             </div>
@@ -205,11 +227,7 @@ export default function SubmitPage() {
               disabled={loading}
               className="w-full bg-green-500 hover:bg-green-400 text-black font-bold text-sm py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 mt-6"
             >
-              {loading
-                ? "Submitting..."
-                : formData.plan === "featured"
-                ? "Proceed to Featured Listing ($49) →"
-                : "Submit Tool for Free Review"}
+              {loading ? "Submitting Tool..." : "Submit Tool for Review"}
             </button>
           </form>
         )}
