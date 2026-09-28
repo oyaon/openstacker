@@ -2,11 +2,9 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  GitBranch,
   ArrowLeft,
   ShieldCheck,
   ExternalLink,
-  DollarSign,
   TrendingDown,
   CheckCircle2,
 } from "lucide-react";
@@ -18,7 +16,6 @@ interface Props {
   };
 }
 
-// Generate Dynamic SEO Metadata for Google
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data: tool } = await supabase
     .from("tools")
@@ -39,7 +36,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AlternativePage({ params }: Props) {
-  // 1. Fetch the target proprietary tool
   const { data: mainTool } = await supabase
     .from("tools")
     .select("*, categories(name)")
@@ -50,20 +46,16 @@ export default async function AlternativePage({ params }: Props) {
     notFound();
   }
 
-  // 2. Fetch mapped open-source alternatives from tool_alternatives
   const { data: rawAlternatives } = await supabase
     .from("tool_alternatives")
     .select("key_benefit, estimated_annual_savings, alternative:alternative_tool_id(*)")
     .eq("proprietary_tool_id", mainTool.id);
 
-  // Parse alternative records
   const alternatives = rawAlternatives || [];
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pt-10 pb-20">
       <div className="max-w-4xl mx-auto px-6">
-        
-        {/* Back Button */}
         <Link
           href="/directory"
           className="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-300 text-xs font-medium mb-8 transition-colors"
@@ -71,7 +63,6 @@ export default async function AlternativePage({ params }: Props) {
           <ArrowLeft className="w-4 h-4" /> Back to Directory
         </Link>
 
-        {/* Hero Section */}
         <div className="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-8 mb-10 shadow-2xl relative overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
@@ -88,20 +79,16 @@ export default async function AlternativePage({ params }: Props) {
               </p>
             </div>
 
-            {/* Quick Stat Card */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 text-center min-w-[200px]">
               <div className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider mb-1">
                 Potential Savings
               </div>
-              <div className="text-3xl font-black text-green-400">
-                100% Free
-              </div>
+              <div className="text-3xl font-black text-green-400">100% Free</div>
               <div className="text-zinc-500 text-xs mt-1">If self-hosted</div>
             </div>
           </div>
         </div>
 
-        {/* Alternatives Section Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-green-400" />
@@ -109,7 +96,6 @@ export default async function AlternativePage({ params }: Props) {
           </h2>
         </div>
 
-        {/* Alternatives List */}
         {alternatives.length === 0 ? (
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-10 text-center">
             <p className="text-zinc-400 text-sm mb-4">
@@ -124,8 +110,15 @@ export default async function AlternativePage({ params }: Props) {
           </div>
         ) : (
           <div className="space-y-6">
-            {alternatives.map((item: any) => {
-              const alt = item.alternative;
+            {alternatives.map((item) => {
+              const alt = item.alternative as {
+                id: string;
+                name: string;
+                icon: string;
+                tagline: string;
+                website_url: string;
+                github_url?: string;
+              };
               if (!alt) return null;
 
               return (
@@ -159,7 +152,6 @@ export default async function AlternativePage({ params }: Props) {
                     </a>
                   </div>
 
-                  {/* Highlights Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-zinc-950 border border-zinc-800/80 rounded-xl p-4">
                       <div className="text-xs font-semibold text-zinc-400 mb-2 flex items-center gap-1.5">
@@ -181,7 +173,6 @@ export default async function AlternativePage({ params }: Props) {
                     </div>
                   </div>
 
-                  {/* GitHub Link if available */}
                   {alt.github_url && (
                     <div className="mt-4 pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-500">
                       <span>Source Code Repository</span>
@@ -201,7 +192,6 @@ export default async function AlternativePage({ params }: Props) {
           </div>
         )}
 
-        {/* CTA Section */}
         <div className="mt-12 bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
           <h3 className="text-lg font-bold text-white mb-2">
             Calculate your custom team savings
@@ -216,7 +206,6 @@ export default async function AlternativePage({ params }: Props) {
             Launch Savings Calculator →
           </Link>
         </div>
-
       </div>
     </main>
   );

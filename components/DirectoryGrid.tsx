@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, Filter, ExternalLink, ShieldCheck, Sparkles } from "lucide-react";
+import { Search, Filter, ExternalLink, ShieldCheck } from "lucide-react";
 
 interface Category {
   id: string;

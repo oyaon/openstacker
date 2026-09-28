@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GitBranch, Sparkles, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SubmitPage() {
@@ -13,7 +13,7 @@ export default function SubmitPage() {
     isOpenSource: "yes",
     githubUrl: "",
     contactEmail: "",
-    plan: "free", // "free" or "featured"
+    plan: "free",
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -24,12 +24,9 @@ export default function SubmitPage() {
     setLoading(true);
 
     try {
-      // If Featured plan is selected, redirect to Stripe Checkout link (or capture lead)
       if (formData.plan === "featured") {
-        // Stripe integration point
         alert("Redirecting to Stripe Checkout for Featured Listing ($49)...");
       }
-
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -41,8 +38,6 @@ export default function SubmitPage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white pt-12 pb-20">
       <div className="max-w-3xl mx-auto px-6">
-        
-        {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-3.5 py-1.5 rounded-full text-xs text-green-400 font-medium mb-4">
             <Sparkles className="w-3.5 h-3.5" />
@@ -61,7 +56,7 @@ export default function SubmitPage() {
             <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Submission Received!</h2>
             <p className="text-zinc-400 text-sm mb-6 max-w-md mx-auto">
-              Our team will review <span className="text-white font-semibold">{formData.toolName}</span> within 24 hours. Once approved, it will be indexed in our global directory.
+              Our team will review <span className="text-white font-semibold">{formData.toolName}</span> within 24 hours.
             </p>
             <Link
               href="/directory"
@@ -72,8 +67,6 @@ export default function SubmitPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6">
-            
-            {/* Listing Plan Selector */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               <div
                 onClick={() => setFormData({ ...formData, plan: "free" })}
@@ -102,14 +95,15 @@ export default function SubmitPage() {
                   MOST POPULAR
                 </span>
                 <div className="text-xs text-green-400 font-medium mb-1">Featured Listing</div>
-                <div className="text-xl font-bold text-white mb-1">$49 <span className="text-xs text-zinc-500 font-normal">one-time</span></div>
+                <div className="text-xl font-bold text-white mb-1">
+                  $49 <span className="text-xs text-zinc-500 font-normal">one-time</span>
+                </div>
                 <p className="text-zinc-500 text-xs leading-relaxed">
-                  Pinned to the top of your category page with a "Featured" badge. Express 12-hour review.
+                  Pinned to the top of your category page with a &quot;Featured&quot; badge.
                 </p>
               </div>
             </div>
 
-            {/* Form Fields */}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Tool Name *</label>
@@ -157,7 +151,7 @@ export default function SubmitPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Short Description / Tagline *</label>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Tagline *</label>
                 <input
                   type="text"
                   required
@@ -182,7 +176,7 @@ export default function SubmitPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">GitHub Repository URL (Optional)</label>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">GitHub Repository (Optional)</label>
                   <input
                     type="url"
                     value={formData.githubUrl}
@@ -194,7 +188,7 @@ export default function SubmitPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Your Contact Email *</label>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Contact Email *</label>
                 <input
                   type="email"
                   required
@@ -211,11 +205,14 @@ export default function SubmitPage() {
               disabled={loading}
               className="w-full bg-green-500 hover:bg-green-400 text-black font-bold text-sm py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 mt-6"
             >
-              {loading ? "Submitting..." : formData.plan === "featured" ? "Proceed to Featured Listing ($49) →" : "Submit Tool for Free Review"}
+              {loading
+                ? "Submitting..."
+                : formData.plan === "featured"
+                ? "Proceed to Featured Listing ($49) →"
+                : "Submit Tool for Free Review"}
             </button>
           </form>
         )}
-
       </div>
     </main>
   );

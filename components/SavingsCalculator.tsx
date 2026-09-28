@@ -85,7 +85,7 @@ export default function SavingsCalculator() {
 
     try {
       // Free Web3Forms or Fallback Endpoint
-      const response = await fetch("https://api.web3forms.com/submit", {
+      await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
