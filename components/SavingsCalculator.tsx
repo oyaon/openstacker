@@ -36,12 +36,23 @@ interface Selection {
   seats: number;
 }
 
+// Helper to strip https:// and www for the Google Favicon API
+const getBaseDomain = (url: string) => {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+};
+
 export default function SavingsCalculator() {
   const [dbTools, setDbTools] = useState<DBTool[]>([]);
   const [loading, setLoading] = useState(true);
   const [selections, setSelections] = useState<Selection[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
   const [email, setEmail] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +72,6 @@ export default function SavingsCalculator() {
 
         const mappedTools = proprietaryTools.map((tool) => {
           const match = mappings?.find((m) => m.proprietary_tool_id === tool.id);
-          // Safely unwrap object or array return types from Supabase JS
           const rawAlt = match?.alternative;
           const alt = Array.isArray(rawAlt) ? rawAlt[0] : rawAlt;
 
@@ -133,7 +143,12 @@ export default function SavingsCalculator() {
     return t.categories.name || "General";
   };
 
-  const categories = Array.from(new Set(dbTools.map(getCategoryName)));
+  const categories = ["All", ...Array.from(new Set(dbTools.map(getCategoryName)))];
+
+  const filteredTools = useMemo(() => {
+    if (activeCategory === "All") return dbTools;
+    return dbTools.filter((t) => getCategoryName(t) === activeCategory);
+  }, [dbTools, activeCategory]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +169,6 @@ export default function SavingsCalculator() {
           message: `Lead calculated $${Math.round(results.totalSavingsYearly).toLocaleString()}/yr savings across ${selections.length} tools.`,
         }),
       });
-
       setEmailSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -175,11 +189,12 @@ export default function SavingsCalculator() {
     return (
       <div className="w-full max-w-4xl mx-auto text-center py-16 bg-zinc-900/40 border border-zinc-800 rounded-3xl backdrop-blur-md">
         <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        <p className="text-zinc-500 text-xs font-mono">Loading live tool pricing from database...</p>
+        <p className="text-zinc-500 text-xs font-mono">Loading tools from database...</p>
       </div>
     );
   }
 
+  // --- RESULTS VIEW ---
   if (showResults && selections.length > 0) {
     return (
       <div className="w-full max-w-3xl mx-auto text-left">
@@ -207,15 +222,13 @@ export default function SavingsCalculator() {
               return (
                 <div key={item.tool.id}>
                   <button
-                    onClick={() =>
-                      setExpandedTool(expandedTool === item.tool.id ? null : item.tool.id)
-                    }
+                    onClick={() => setExpandedTool(expandedTool === item.tool.id ? null : item.tool.id)}
                     className="w-full flex items-center justify-between p-5 hover:bg-zinc-800/40 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-center">
                         <img
-                          src={item.tool.logo_url || `https://www.google.com/s2/favicons?domain=${item.tool.website_url}&sz=128`}
+                          src={item.tool.logo_url || `https://www.google.com/s2/favicons?domain=${getBaseDomain(item.tool.website_url)}&sz=128`}
                           alt={item.tool.name}
                           className="w-6 h-6 object-contain rounded"
                         />
@@ -241,11 +254,7 @@ export default function SavingsCalculator() {
                           ${Math.round(item.currentMonthly)}/mo
                         </div>
                       </div>
-                      {expandedTool === item.tool.id ? (
-                        <ChevronUp className="w-4 h-4 text-zinc-500" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-zinc-500" />
-                      )}
+                      {expandedTool === item.tool.id ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
                     </div>
                   </button>
 
@@ -287,9 +296,7 @@ export default function SavingsCalculator() {
 
         <div className="bg-gradient-to-br from-zinc-900 to-zinc-900/60 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-center mb-6 shadow-2xl">
           <Sparkles className="w-6 h-6 text-green-400 mx-auto mb-2" />
-          <h3 className="text-lg font-bold text-white mb-1">
-            Get Free Open-Source Migration Guides
-          </h3>
+          <h3 className="text-lg font-bold text-white mb-1">Get Free Open-Source Migration Guides</h3>
           <p className="text-zinc-400 text-xs mb-4 max-w-sm mx-auto">
             Get step-by-step instructions to move your team off paid SaaS this weekend.
           </p>
@@ -329,103 +336,126 @@ export default function SavingsCalculator() {
     );
   }
 
+  // --- SELECTION VIEW (DENSE GRID) ---
   return (
-    <div className="w-full max-w-4xl mx-auto text-left">
+    <div className="w-full max-w-5xl mx-auto text-left">
       <div className="text-center mb-8">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
-          Select the software tools you currently pay for
+        <h2 className="text-xl md:text-3xl font-bold text-white mb-2">
+          Select the software tools you pay for
         </h2>
         <p className="text-zinc-400 text-sm">
-          Click any tool to select it and adjust team sizes.
+          Click tools to add them to your stack and adjust team seat counts.
         </p>
       </div>
 
-      <div className="space-y-6 mb-10">
-        {categories.map((category) => (
-          <div key={category}>
-            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
-              {category}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {dbTools
-                .filter((t) => getCategoryName(t) === category)
-                .map((tool) => {
-                  const isSelected = !!selections.find((s) => s.toolId === tool.id);
-                  const sel = selections.find((s) => s.toolId === tool.id);
-
-                  return (
-                    <div
-                      key={tool.id}
-                      onClick={() => toggleTool(tool.id)}
-                      className={`relative cursor-pointer rounded-2xl border p-3.5 transition-all select-none ${
-                        isSelected
-                          ? "border-green-500 bg-green-500/10 shadow-lg shadow-green-500/5"
-                          : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
-                        </div>
-                      )}
-                      <div className="w-8 h-8 bg-zinc-950 border border-zinc-800 rounded-xl p-1.5 flex items-center justify-center mb-2">
-                        <img
-                          src={tool.logo_url || `https://www.google.com/s2/favicons?domain=${tool.website_url}&sz=128`}
-                          alt={tool.name}
-                          className="w-5 h-5 object-contain rounded"
-                        />
-                      </div>
-                      <div className="text-white font-semibold text-sm">{tool.name}</div>
-                      <div className="text-zinc-500 text-xs mt-0.5">
-                        ${tool.monthly_cost_per_user}
-                        {tool.pricing_type === "per_user" ? "/user" : ""}/mo
-                      </div>
-
-                      <div className="mt-2 pt-2 border-t border-zinc-800/60 text-[10px] text-zinc-400 flex items-center gap-1">
-                        Swap: <span className="text-green-400 font-semibold truncate">{tool.alternative?.name}</span>
-                      </div>
-
-                      {isSelected && (
-                        <div
-                          className="mt-2 pt-2 border-t border-zinc-700"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <label className="text-[10px] text-zinc-400 block mb-1 font-medium">
-                            {tool.pricing_type === "per_user" ? "Seats" : "Units"}
-                          </label>
-                          <div className="flex items-center justify-between">
-                            <button
-                              onClick={() => updateSeats(tool.id, (sel?.seats || 5) - 1)}
-                              className="w-6 h-6 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
-                            >
-                              −
-                            </button>
-                            <span className="text-white font-bold text-xs">
-                              {sel?.seats || 5}
-                            </span>
-                            <button
-                              onClick={() => updateSeats(tool.id, (sel?.seats || 5) + 1)}
-                              className="w-6 h-6 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
+      {/* Horizontal Category Pill Tabs */}
+      <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              activeCategory === cat
+                ? "bg-green-500 text-black shadow-lg shadow-green-500/20"
+                : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+            }`}
+          >
+            {cat}
+          </button>
         ))}
       </div>
 
+      {/* Balanced Dense Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+        {filteredTools.map((tool) => {
+          const isSelected = !!selections.find((s) => s.toolId === tool.id);
+          const sel = selections.find((s) => s.toolId === tool.id);
+
+          return (
+            <div
+              key={tool.id}
+              onClick={() => toggleTool(tool.id)}
+              className={`relative cursor-pointer rounded-2xl border p-4 transition-all select-none flex flex-col justify-between ${
+                isSelected
+                  ? "border-green-500 bg-green-500/10 shadow-lg shadow-green-500/10"
+                  : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-700 hover:bg-zinc-900"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-center shadow-inner">
+                    <img
+                      src={tool.logo_url || `https://www.google.com/s2/favicons?domain=${getBaseDomain(tool.website_url)}&sz=128`}
+                      alt={tool.name}
+                      className="w-6 h-6 object-contain rounded"
+                    />
+                  </div>
+                  {isSelected ? (
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5 text-black stroke-[3]" />
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-lg font-mono">
+                      {getCategoryName(tool)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-white font-bold text-base mb-0.5">{tool.name}</div>
+                <div className="text-zinc-400 text-xs font-mono">
+                  ${tool.monthly_cost_per_user}
+                  {tool.pricing_type === "per_user" ? "/user" : ""}/mo
+                </div>
+              </div>
+
+              {/* Swap Tag */}
+              <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+                <span className="text-zinc-500 text-[11px]">Swap:</span>
+                <span className="text-green-400 font-semibold text-xs truncate pl-2">
+                  {tool.alternative?.name}
+                </span>
+              </div>
+
+              {/* Seat Counter */}
+              {isSelected && (
+                <div
+                  className="mt-3 pt-3 border-t border-zinc-700/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-300 font-medium">Team Seats:</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateSeats(tool.id, (sel?.seats || 5) - 1)}
+                        className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
+                      >
+                        −
+                      </button>
+                      <span className="text-white font-bold text-xs w-6 text-center">
+                        {sel?.seats || 5}
+                      </span>
+                      <button
+                        onClick={() => updateSeats(tool.id, (sel?.seats || 5) + 1)}
+                        className="w-7 h-7 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Floating Action Bar */}
       {selections.length > 0 && (
-        <div className="text-center bg-zinc-900/90 border border-zinc-800 p-4 rounded-2xl sticky bottom-6 backdrop-blur-md shadow-2xl z-40">
+        <div className="text-center bg-zinc-900/95 border border-zinc-800 p-4 rounded-2xl sticky bottom-6 backdrop-blur-md shadow-2xl z-40">
           <div className="flex items-center justify-between max-w-xl mx-auto">
             <div className="text-left">
-              <div className="text-zinc-400 text-xs">Selected Stack</div>
-              <div className="text-white font-bold text-sm">{selections.length} tools selected</div>
+              <div className="text-zinc-400 text-xs">Selected Software Stack</div>
+              <div className="text-white font-bold text-sm">{selections.length} tools added</div>
             </div>
             <button
               onClick={() => setShowResults(true)}
