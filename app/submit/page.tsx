@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +25,24 @@ export default function SubmitPage() {
     setLoading(true);
 
     try {
-      // Send tool submission straight to your inbox via Web3Forms (Free)
+      // 1. Insert into Supabase Submissions Table
+      const { error: dbError } = await supabase.from("submissions").insert([
+        {
+          tool_name: formData.toolName,
+          website_url: formData.websiteUrl,
+          category_name: formData.category,
+          description: formData.description,
+          is_open_source: formData.isOpenSource === "yes",
+          github_url: formData.githubUrl || null,
+          contact_email: formData.contactEmail,
+          plan: formData.plan,
+          status: "pending",
+        },
+      ]);
+
+      if (dbError) console.error("Database submission error:", dbError);
+
+      // 2. Email Notification via Web3Forms
       await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
@@ -168,6 +186,8 @@ export default function SubmitPage() {
                     <option value="Marketing">Marketing</option>
                     <option value="Support">Support</option>
                     <option value="Design">Design</option>
+                    <option value="Analytics">Analytics</option>
+                    <option value="Developer Tools">Developer Tools</option>
                   </select>
                 </div>
               </div>
