@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { tools } from "@/data/tools";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   ArrowRight,
   Check,
@@ -13,18 +13,75 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+interface DBTool {
+  id: string;
+  name: string;
+  slug: string;
+  monthly_cost_per_user: number;
+  pricing_type: "per_user" | "flat";
+  logo_url: string;
+  website_url: string;
+  icon: string;
+  category_id: string;
+  categories?: { name: string } | { name: string }[];
+  alternative?: {
+    name: string;
+    website_url: string;
+    logo_url: string;
+  };
+}
+
 interface Selection {
   toolId: string;
   seats: number;
 }
 
 export default function SavingsCalculator() {
+  const [dbTools, setDbTools] = useState<DBTool[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selections, setSelections] = useState<Selection[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function loadCalculatorData() {
+      const { data: proprietaryTools } = await supabase
+        .from("tools")
+        .select("*, categories(name)")
+        .eq("is_proprietary", true)
+        .order("name", { ascending: true });
+
+      if (proprietaryTools) {
+        const { data: mappings } = await supabase
+          .from("tool_alternatives")
+          .select("proprietary_tool_id, alternative:alternative_tool_id(name, website_url, logo_url)");
+
+        const mappedTools = proprietaryTools.map((tool) => {
+          const match = mappings?.find((m) => m.proprietary_tool_id === tool.id);
+          // Safely unwrap object or array return types from Supabase JS
+          const rawAlt = match?.alternative;
+          const alt = Array.isArray(rawAlt) ? rawAlt[0] : rawAlt;
+
+          return {
+            ...tool,
+            alternative: alt || {
+              name: "Open-Source Alternative",
+              website_url: tool.website_url,
+              logo_url: tool.logo_url,
+            },
+          };
+        });
+
+        setDbTools(mappedTools);
+      }
+      setLoading(false);
+    }
+
+    loadCalculatorData();
+  }, []);
 
   const toggleTool = (toolId: string) => {
     if (selections.find((s) => s.toolId === toolId)) {
@@ -44,26 +101,21 @@ export default function SavingsCalculator() {
 
   const results = useMemo(() => {
     let totalCurrentMonthly = 0;
-    let totalAlternativeMonthly = 0;
-
     const breakdown = selections.map((sel) => {
-      const tool = tools.find((t) => t.id === sel.toolId)!;
+      const tool = dbTools.find((t) => t.id === sel.toolId)!;
       const currentMonthly =
-        tool.pricingType === "per_user"
-          ? tool.monthlyCostPerUser * sel.seats
-          : tool.monthlyCostPerUser;
-      const altMonthly = tool.alternative.cost * sel.seats;
+        tool?.pricing_type === "per_user"
+          ? tool.monthly_cost_per_user * sel.seats
+          : tool?.monthly_cost_per_user || 0;
 
       totalCurrentMonthly += currentMonthly;
-      totalAlternativeMonthly += altMonthly;
 
       return {
         tool,
         seats: sel.seats,
         currentMonthly,
-        altMonthly,
-        savingsMonthly: currentMonthly - altMonthly,
-        savingsYearly: (currentMonthly - altMonthly) * 12,
+        savingsMonthly: currentMonthly,
+        savingsYearly: currentMonthly * 12,
       };
     });
 
@@ -71,12 +123,17 @@ export default function SavingsCalculator() {
       breakdown,
       totalCurrentMonthly,
       totalCurrentYearly: totalCurrentMonthly * 12,
-      totalAlternativeYearly: totalAlternativeMonthly * 12,
-      totalSavingsYearly: (totalCurrentMonthly - totalAlternativeMonthly) * 12,
+      totalSavingsYearly: totalCurrentMonthly * 12,
     };
-  }, [selections]);
+  }, [selections, dbTools]);
 
-  const categories = Array.from(new Set(tools.map((t) => t.category)));
+  const getCategoryName = (t: DBTool): string => {
+    if (!t.categories) return "General";
+    if (Array.isArray(t.categories)) return t.categories[0]?.name || "General";
+    return t.categories.name || "General";
+  };
+
+  const categories = Array.from(new Set(dbTools.map(getCategoryName)));
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +141,6 @@ export default function SavingsCalculator() {
     setIsSubmitting(true);
 
     try {
-      // Free Web3Forms or Fallback Endpoint
       await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
@@ -92,7 +148,7 @@ export default function SavingsCalculator() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          access_key: "3d226848-18e3-4d03-b09e-31d79ff4b901", // Default open collector
+          access_key: "3d226848-18e3-4d03-b09e-31d79ff4b901",
           email: email,
           subject: "New OpenStacker Lead!",
           message: `Lead calculated $${Math.round(results.totalSavingsYearly).toLocaleString()}/yr savings across ${selections.length} tools.`,
@@ -102,7 +158,7 @@ export default function SavingsCalculator() {
       setEmailSubmitted(true);
     } catch (err) {
       console.error(err);
-      setEmailSubmitted(true); // Graceful fallback UX
+      setEmailSubmitted(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -115,10 +171,18 @@ export default function SavingsCalculator() {
     setEmailSubmitted(false);
   };
 
+  if (loading) {
+    return (
+      <div className="w-full max-w-4xl mx-auto text-center py-16 bg-zinc-900/40 border border-zinc-800 rounded-3xl backdrop-blur-md">
+        <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <p className="text-zinc-500 text-xs font-mono">Loading live tool pricing from database...</p>
+      </div>
+    );
+  }
+
   if (showResults && selections.length > 0) {
     return (
       <div className="w-full max-w-3xl mx-auto text-left">
-        {/* Big Savings Summary */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-400 border border-green-500/20 px-4 py-2 rounded-full text-sm font-semibold mb-4">
             <TrendingDown className="w-4 h-4" />
@@ -132,91 +196,96 @@ export default function SavingsCalculator() {
           </div>
         </div>
 
-        {/* Itemized Breakdown */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mb-8 shadow-2xl">
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl overflow-hidden mb-8 shadow-2xl backdrop-blur-md">
           <div className="p-5 border-b border-zinc-800 bg-zinc-900/80 flex items-center justify-between">
             <h3 className="text-base font-bold text-white">Your Software Breakdown</h3>
-            <span className="text-xs text-zinc-500">{results.breakdown.length} tools analyzed</span>
+            <span className="text-xs text-zinc-500 font-mono">{results.breakdown.length} tools analyzed</span>
           </div>
           <div className="divide-y divide-zinc-800">
-            {results.breakdown.map((item) => (
-              <div key={item.tool.id}>
-                <button
-                  onClick={() =>
-                    setExpandedTool(expandedTool === item.tool.id ? null : item.tool.id)
-                  }
-                  className="w-full flex items-center justify-between p-5 hover:bg-zinc-800/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{item.tool.icon}</span>
-                    <div className="text-left">
-                      <div className="text-white font-semibold text-sm flex items-center gap-2">
-                        {item.tool.name}
-                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono">
-                          {item.seats} {item.tool.pricingType === "per_user" ? "seats" : "plan"}
-                        </span>
+            {results.breakdown.map((item) => {
+              if (!item.tool) return null;
+              return (
+                <div key={item.tool.id}>
+                  <button
+                    onClick={() =>
+                      setExpandedTool(expandedTool === item.tool.id ? null : item.tool.id)
+                    }
+                    className="w-full flex items-center justify-between p-5 hover:bg-zinc-800/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-center">
+                        <img
+                          src={item.tool.logo_url || `https://www.google.com/s2/favicons?domain=${item.tool.website_url}&sz=128`}
+                          alt={item.tool.name}
+                          className="w-6 h-6 object-contain rounded"
+                        />
                       </div>
-                      <div className="text-zinc-400 text-xs mt-0.5 flex items-center gap-1">
-                        Swap for: <span className="text-green-400 font-medium">{item.tool.alternative.name}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-green-400 font-bold text-sm">
-                        +${Math.round(item.savingsYearly).toLocaleString()}/yr
-                      </div>
-                      <div className="text-zinc-600 text-xs line-through">
-                        ${Math.round(item.currentMonthly)}/mo
-                      </div>
-                    </div>
-                    {expandedTool === item.tool.id ? (
-                      <ChevronUp className="w-4 h-4 text-zinc-500" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-zinc-500" />
-                    )}
-                  </div>
-                </button>
-
-                {expandedTool === item.tool.id && (
-                  <div className="px-5 pb-5 pt-2 bg-zinc-950/60">
-                    <div className="grid grid-cols-3 gap-3 text-center mb-4">
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
-                        <div className="text-zinc-500 text-[10px] uppercase font-semibold mb-1">Proprietary Cost</div>
-                        <div className="text-red-400 font-bold text-sm">
-                          ${Math.round(item.currentMonthly * 12).toLocaleString()}/yr
+                      <div className="text-left">
+                        <div className="text-white font-semibold text-sm flex items-center gap-2">
+                          {item.tool.name}
+                          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono">
+                            {item.seats} {item.tool.pricing_type === "per_user" ? "seats" : "plan"}
+                          </span>
+                        </div>
+                        <div className="text-zinc-400 text-xs mt-0.5 flex items-center gap-1.5">
+                          Swap for: <span className="text-green-400 font-medium">{item.tool.alternative?.name}</span>
                         </div>
                       </div>
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
-                        <div className="text-zinc-500 text-[10px] uppercase font-semibold mb-1">With {item.tool.alternative.name}</div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
                         <div className="text-green-400 font-bold text-sm">
-                          {item.altMonthly === 0 ? "Free / Self-Hosted" : `$${Math.round(item.altMonthly * 12).toLocaleString()}/yr`}
+                          +${Math.round(item.savingsYearly).toLocaleString()}/yr
+                        </div>
+                        <div className="text-zinc-600 text-xs line-through">
+                          ${Math.round(item.currentMonthly)}/mo
                         </div>
                       </div>
-                      <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
-                        <div className="text-green-400 text-[10px] uppercase font-semibold mb-1">Your Savings</div>
-                        <div className="text-green-300 font-bold text-sm">
-                          ${Math.round(item.savingsYearly).toLocaleString()}/yr
-                        </div>
-                      </div>
+                      {expandedTool === item.tool.id ? (
+                        <ChevronUp className="w-4 h-4 text-zinc-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-zinc-500" />
+                      )}
                     </div>
-                    <a
-                      href={item.tool.alternative.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-black font-bold text-sm py-2.5 rounded-xl transition-colors"
-                    >
-                      Visit {item.tool.alternative.name} <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
-                )}
-              </div>
-            ))}
+                  </button>
+
+                  {expandedTool === item.tool.id && (
+                    <div className="px-5 pb-5 pt-2 bg-zinc-950/60">
+                      <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3">
+                          <div className="text-zinc-500 text-[10px] uppercase font-semibold mb-1">Proprietary Cost</div>
+                          <div className="text-red-400 font-bold text-sm">
+                            ${Math.round(item.currentMonthly * 12).toLocaleString()}/yr
+                          </div>
+                        </div>
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3">
+                          <div className="text-zinc-500 text-[10px] uppercase font-semibold mb-1">With {item.tool.alternative?.name}</div>
+                          <div className="text-green-400 font-bold text-sm">Free / $0</div>
+                        </div>
+                        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-3">
+                          <div className="text-green-400 text-[10px] uppercase font-semibold mb-1">Your Savings</div>
+                          <div className="text-green-300 font-bold text-sm">
+                            ${Math.round(item.savingsYearly).toLocaleString()}/yr
+                          </div>
+                        </div>
+                      </div>
+                      <a
+                        href={item.tool.alternative?.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-black font-bold text-sm py-2.5 rounded-xl transition-colors"
+                      >
+                        Visit {item.tool.alternative?.name} <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Lead Capture */}
-        <div className="bg-gradient-to-br from-zinc-900 to-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center mb-6">
+        <div className="bg-gradient-to-br from-zinc-900 to-zinc-900/60 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-center mb-6 shadow-2xl">
           <Sparkles className="w-6 h-6 text-green-400 mx-auto mb-2" />
           <h3 className="text-lg font-bold text-white mb-1">
             Get Free Open-Source Migration Guides
@@ -278,8 +347,8 @@ export default function SavingsCalculator() {
               {category}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {tools
-                .filter((t) => t.category === category)
+              {dbTools
+                .filter((t) => getCategoryName(t) === category)
                 .map((tool) => {
                   const isSelected = !!selections.find((s) => s.toolId === tool.id);
                   const sel = selections.find((s) => s.toolId === tool.id);
@@ -288,7 +357,7 @@ export default function SavingsCalculator() {
                     <div
                       key={tool.id}
                       onClick={() => toggleTool(tool.id)}
-                      className={`relative cursor-pointer rounded-xl border p-3.5 transition-all select-none ${
+                      className={`relative cursor-pointer rounded-2xl border p-3.5 transition-all select-none ${
                         isSelected
                           ? "border-green-500 bg-green-500/10 shadow-lg shadow-green-500/5"
                           : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
@@ -299,16 +368,21 @@ export default function SavingsCalculator() {
                           <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
                         </div>
                       )}
-                      <div className="text-2xl mb-1.5">{tool.icon}</div>
+                      <div className="w-8 h-8 bg-zinc-950 border border-zinc-800 rounded-xl p-1.5 flex items-center justify-center mb-2">
+                        <img
+                          src={tool.logo_url || `https://www.google.com/s2/favicons?domain=${tool.website_url}&sz=128`}
+                          alt={tool.name}
+                          className="w-5 h-5 object-contain rounded"
+                        />
+                      </div>
                       <div className="text-white font-semibold text-sm">{tool.name}</div>
                       <div className="text-zinc-500 text-xs mt-0.5">
-                        ${tool.monthlyCostPerUser}
-                        {tool.pricingType === "per_user" ? "/user" : ""}/mo
+                        ${tool.monthly_cost_per_user}
+                        {tool.pricing_type === "per_user" ? "/user" : ""}/mo
                       </div>
-                      
-                      {/* Show Alternative Tag directly on the card */}
+
                       <div className="mt-2 pt-2 border-t border-zinc-800/60 text-[10px] text-zinc-400 flex items-center gap-1">
-                        Swap: <span className="text-green-400 font-semibold truncate">{tool.alternative.name}</span>
+                        Swap: <span className="text-green-400 font-semibold truncate">{tool.alternative?.name}</span>
                       </div>
 
                       {isSelected && (
@@ -317,12 +391,12 @@ export default function SavingsCalculator() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <label className="text-[10px] text-zinc-400 block mb-1 font-medium">
-                            {tool.pricingType === "per_user" ? "Seats" : "Units"}
+                            {tool.pricing_type === "per_user" ? "Seats" : "Units"}
                           </label>
                           <div className="flex items-center justify-between">
                             <button
                               onClick={() => updateSeats(tool.id, (sel?.seats || 5) - 1)}
-                              className="w-6 h-6 rounded bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
+                              className="w-6 h-6 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
                             >
                               −
                             </button>
@@ -331,7 +405,7 @@ export default function SavingsCalculator() {
                             </span>
                             <button
                               onClick={() => updateSeats(tool.id, (sel?.seats || 5) + 1)}
-                              className="w-6 h-6 rounded bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
+                              className="w-6 h-6 rounded-lg bg-zinc-800 text-white flex items-center justify-center hover:bg-zinc-700 text-xs font-bold"
                             >
                               +
                             </button>

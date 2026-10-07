@@ -17,10 +17,10 @@ export default async function DirectoryPage() {
     .select("*")
     .order("name", { ascending: true });
 
-  // 2. Fetch tools
+  // 2. Fetch tools WITH joined category information
   const { data: tools, error: toolError } = await supabase
     .from("tools")
-    .select("*")
+    .select("*, categories(id, name, slug, icon)")
     .order("name", { ascending: true });
 
   if (catError) console.error("Categories fetch error:", catError);
@@ -28,7 +28,6 @@ export default async function DirectoryPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white pt-10">
-      {/* Header */}
       <section className="max-w-4xl mx-auto px-6 text-center mb-6">
         <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3.5 py-1.5 rounded-full text-xs text-zinc-400 font-medium mb-4">
           <GitBranch className="w-3.5 h-3.5 text-green-400" />
@@ -42,7 +41,6 @@ export default async function DirectoryPage() {
         </p>
       </section>
 
-      {/* Interactive Directory Grid */}
       <DirectoryGrid
         initialTools={tools || []}
         categories={categories || []}

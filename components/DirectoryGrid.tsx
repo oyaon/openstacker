@@ -18,6 +18,7 @@ interface Tool {
   tagline: string;
   website_url: string;
   github_url?: string;
+  logo_url?: string;
   icon: string;
   is_proprietary: boolean;
   is_open_source: boolean;
@@ -41,16 +42,13 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
 
   const filteredTools = useMemo(() => {
     return initialTools.filter((tool) => {
-      // Search match
       const matchesSearch =
         tool.name.toLowerCase().includes(search.toLowerCase()) ||
         tool.tagline.toLowerCase().includes(search.toLowerCase());
 
-      // Category match
       const matchesCategory =
         selectedCategory === "all" || tool.category_id === selectedCategory;
 
-      // Type match
       const matchesType =
         typeFilter === "all" ||
         (typeFilter === "open_source" && tool.is_open_source) ||
@@ -62,12 +60,8 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
 
   return (
     <div className="w-full max-w-6xl mx-auto px-6 py-10">
-      
-      {/* Search & Filter Controls */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-6 mb-10 shadow-2xl">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">
-          
-          {/* Search Input */}
           <div className="relative w-full md:w-96">
             <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" />
             <input
@@ -79,7 +73,6 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
             />
           </div>
 
-          {/* Type Selector Toggle */}
           <div className="flex bg-zinc-950 p-1 border border-zinc-800 rounded-xl w-full md:w-auto">
             <button
               onClick={() => setFilterType("all")}
@@ -108,7 +101,6 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
           </div>
         </div>
 
-        {/* Category Pill Buttons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => setSelectedCategory("all")}
@@ -137,14 +129,12 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
         </div>
       </div>
 
-      {/* Grid Header Counter */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-zinc-400 text-sm font-medium">
           Showing <span className="text-white font-bold">{filteredTools.length}</span> tools
         </h3>
       </div>
 
-      {/* Tools Grid */}
       {filteredTools.length === 0 ? (
         <div className="text-center py-20 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
           <Filter className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
@@ -171,9 +161,13 @@ export default function DirectoryGrid({ initialTools, categories }: DirectoryGri
               <div>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl p-2 bg-zinc-950 border border-zinc-800 rounded-xl group-hover:scale-105 transition-transform">
-                      {tool.icon}
-                    </span>
+                    <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <img
+                        src={tool.logo_url || `https://www.google.com/s2/favicons?domain=${tool.website_url}&sz=128`}
+                        alt={tool.name}
+                        className="w-6 h-6 object-contain rounded"
+                      />
+                    </div>
                     <div>
                       <h4 className="text-white font-bold text-base group-hover:text-green-400 transition-colors">
                         {tool.name}

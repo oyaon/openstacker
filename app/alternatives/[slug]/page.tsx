@@ -67,7 +67,11 @@ export default async function AlternativePage({ params }: Props) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-400 border border-zinc-700 px-3 py-1 rounded-full text-xs font-semibold mb-4">
-                <span>{mainTool.icon}</span>
+                <img
+                  src={mainTool.logo_url || `https://www.google.com/s2/favicons?domain=${mainTool.website_url}&sz=128`}
+                  alt={mainTool.name}
+                  className="w-4 h-4 object-contain rounded"
+                />
                 <span>{mainTool.name} Alternatives</span>
               </div>
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-3">
@@ -111,14 +115,8 @@ export default async function AlternativePage({ params }: Props) {
         ) : (
           <div className="space-y-6">
             {alternatives.map((item) => {
-              const alt = item.alternative as {
-                id: string;
-                name: string;
-                icon: string;
-                tagline: string;
-                website_url: string;
-                github_url?: string;
-              };
+              const rawAlt = item.alternative;
+              const alt = Array.isArray(rawAlt) ? rawAlt[0] : rawAlt;
               if (!alt) return null;
 
               return (
@@ -128,9 +126,13 @@ export default async function AlternativePage({ params }: Props) {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-zinc-800">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl">
-                        {alt.icon}
-                      </span>
+                      <div className="w-10 h-10 bg-zinc-950 border border-zinc-800 rounded-xl p-2 flex items-center justify-center">
+                        <img
+                          src={alt.logo_url || `https://www.google.com/s2/favicons?domain=${alt.website_url}&sz=128`}
+                          alt={alt.name}
+                          className="w-6 h-6 object-contain rounded"
+                        />
+                      </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-lg font-bold text-white">{alt.name}</h3>
