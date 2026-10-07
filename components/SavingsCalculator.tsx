@@ -36,7 +36,6 @@ interface Selection {
   seats: number;
 }
 
-// Bulletproof helper to extract bare domain for Google Favicons API
 const getBaseDomain = (url: string): string => {
   if (!url) return "slack.com";
   try {
@@ -111,8 +110,9 @@ export default function SavingsCalculator() {
     );
   };
 
-  // Quick Stack Presets Handler
+  // Quick Stack Presets Handler (Auto switches activeCategory to "All")
   const applyPreset = (presetType: "startup" | "dev" | "agency") => {
+    setActiveCategory("All"); // Force view to ALL so preset tools are visible immediately
     let presetSlugs: string[] = [];
     if (presetType === "startup") presetSlugs = ["slack", "notion", "zoom", "zapier", "airtable"];
     if (presetType === "dev") presetSlugs = ["slack", "jira", "github", "postman", "google-analytics"];
@@ -350,7 +350,7 @@ export default function SavingsCalculator() {
     );
   }
 
-  // --- SELECTION VIEW (DENSE GRID + PRESETS + TABS) ---
+  // --- SELECTION VIEW ---
   return (
     <div className="w-full max-w-5xl mx-auto text-left">
       <div className="text-center mb-6">
@@ -385,8 +385,8 @@ export default function SavingsCalculator() {
         </div>
       </div>
 
-      {/* Horizontal Category Pill Tabs */}
-      <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+      {/* Horizontal Category Pill Tabs (With Hidden Native Scrollbar) */}
+      <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -453,7 +453,7 @@ export default function SavingsCalculator() {
                 </span>
               </div>
 
-              {/* Seat Counter for Selected Cards */}
+              {/* Seat Counter */}
               {isSelected && (
                 <div
                   className="mt-3 pt-3 border-t border-zinc-700/80"
