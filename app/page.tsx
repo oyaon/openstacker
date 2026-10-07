@@ -1,24 +1,9 @@
 import SavingsCalculator from "@/components/SavingsCalculator";
-import { GitBranch, DollarSign, ShieldCheck, Zap } from "lucide-react";
+import { DollarSign, ShieldCheck, Zap } from "lucide-react";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-white selection:bg-green-500/30 selection:text-green-300">
-      {/* Navigation */}
-      <nav className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/20">
-              <GitBranch className="w-5 h-5 text-black stroke-[2.5]" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">OpenStacker</span>
-          </div>
-          <div className="text-zinc-500 text-xs font-medium">
-            Open-source swaps for bootstrapped teams
-          </div>
-        </div>
-      </nav>
-
+    <>
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto px-6 pt-16 pb-10 text-center">
         <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-3.5 py-1.5 rounded-full text-xs text-green-400 font-medium mb-6">
@@ -72,11 +57,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/60 py-8 text-center text-zinc-600 text-xs">
-        OpenStacker © {new Date().getFullYear()} — Built for bootstrappers & indie hackers.
-      </footer>
-    </main>
+    </>
   );
 }
