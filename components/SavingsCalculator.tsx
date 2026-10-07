@@ -36,13 +36,15 @@ interface Selection {
   seats: number;
 }
 
-// Helper to strip https:// and www for the Google Favicon API
-const getBaseDomain = (url: string) => {
+// Bulletproof helper to extract bare domain for Google Favicons API
+const getBaseDomain = (url: string): string => {
+  if (!url) return "slack.com";
   try {
-    const hostname = new URL(url).hostname;
+    const validUrl = url.startsWith("http") ? url : `https://${url}`;
+    const hostname = new URL(validUrl).hostname;
     return hostname.replace(/^www\./, "");
   } catch {
-    return url;
+    return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   }
 };
 
@@ -107,6 +109,18 @@ export default function SavingsCalculator() {
         s.toolId === toolId ? { ...s, seats: Math.max(1, seats) } : s
       )
     );
+  };
+
+  // Quick Stack Presets Handler
+  const applyPreset = (presetType: "startup" | "dev" | "agency") => {
+    let presetSlugs: string[] = [];
+    if (presetType === "startup") presetSlugs = ["slack", "notion", "zoom", "zapier", "airtable"];
+    if (presetType === "dev") presetSlugs = ["slack", "jira", "github", "postman", "google-analytics"];
+    if (presetType === "agency") presetSlugs = ["slack", "figma", "hubspot", "intercom", "mailchimp"];
+
+    const matchingTools = dbTools.filter((t) => presetSlugs.includes(t.slug));
+    const newSelections = matchingTools.map((t) => ({ toolId: t.id, seats: 5 }));
+    setSelections(newSelections);
   };
 
   const results = useMemo(() => {
@@ -336,16 +350,39 @@ export default function SavingsCalculator() {
     );
   }
 
-  // --- SELECTION VIEW (DENSE GRID) ---
+  // --- SELECTION VIEW (DENSE GRID + PRESETS + TABS) ---
   return (
     <div className="w-full max-w-5xl mx-auto text-left">
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <h2 className="text-xl md:text-3xl font-bold text-white mb-2">
           Select the software tools you pay for
         </h2>
-        <p className="text-zinc-400 text-sm">
-          Click tools to add them to your stack and adjust team seat counts.
+        <p className="text-zinc-400 text-sm mb-4">
+          Click tools to add them to your stack or pick a quick preset below.
         </p>
+
+        {/* Quick Stack Preset Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+          <span className="text-xs text-zinc-500 font-medium">Quick Presets:</span>
+          <button
+            onClick={() => applyPreset("startup")}
+            className="bg-zinc-900 border border-zinc-800 hover:border-green-500/50 hover:text-green-400 text-zinc-300 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium"
+          >
+            🚀 Typical Startup Stack
+          </button>
+          <button
+            onClick={() => applyPreset("dev")}
+            className="bg-zinc-900 border border-zinc-800 hover:border-green-500/50 hover:text-green-400 text-zinc-300 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium"
+          >
+            💻 Dev Team Stack
+          </button>
+          <button
+            onClick={() => applyPreset("agency")}
+            className="bg-zinc-900 border border-zinc-800 hover:border-green-500/50 hover:text-green-400 text-zinc-300 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium"
+          >
+            🎨 Agency & Marketing Stack
+          </button>
+        </div>
       </div>
 
       {/* Horizontal Category Pill Tabs */}
@@ -365,7 +402,7 @@ export default function SavingsCalculator() {
         ))}
       </div>
 
-      {/* Balanced Dense Grid */}
+      {/* Dense 3-Column Tool Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
         {filteredTools.map((tool) => {
           const isSelected = !!selections.find((s) => s.toolId === tool.id);
@@ -416,7 +453,7 @@ export default function SavingsCalculator() {
                 </span>
               </div>
 
-              {/* Seat Counter */}
+              {/* Seat Counter for Selected Cards */}
               {isSelected && (
                 <div
                   className="mt-3 pt-3 border-t border-zinc-700/80"

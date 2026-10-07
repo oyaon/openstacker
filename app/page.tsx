@@ -8,12 +8,14 @@ import {
   HelpCircle,
   PlusCircle,
   CheckCircle2,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="relative overflow-hidden bg-grid-pattern bg-radial-glow">
-      {/* Hero */}
+      {/* 1. Hero Section */}
       <section className="max-w-5xl mx-auto px-6 pt-20 pb-12 text-center relative z-10">
         <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-1.5 rounded-full text-xs text-green-400 font-semibold mb-6 shadow-lg shadow-green-500/5">
           <DollarSign className="w-3.5 h-3.5" />
@@ -48,8 +50,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Honest Metrics */}
-      <section className="max-w-5xl mx-auto px-6 py-8">
+      {/* 2. Honest Live Metrics Counter Bar */}
+      <section className="max-w-5xl mx-auto px-6 py-6">
         <div className="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center backdrop-blur-md shadow-2xl">
           <div>
             <div className="text-2xl sm:text-3xl font-black text-white font-mono">30+</div>
@@ -70,12 +72,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Main Calculator */}
+      {/* 3. Main Calculator Container */}
       <section id="calculator" className="max-w-6xl mx-auto px-6 py-12 scroll-mt-20">
         <SavingsCalculator />
       </section>
 
-      {/* Trending Swaps */}
+      {/* 4. Trending Open-Source Swaps Spotlight Grid */}
       <section className="max-w-6xl mx-auto px-6 py-16 border-t border-zinc-800/60">
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 gap-4">
           <div>
@@ -124,7 +126,50 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Migration Guides */}
+      {/* 5. How It Works Section */}
+      <section className="max-w-5xl mx-auto px-6 py-16 border-t border-zinc-800/60">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-full text-xs text-zinc-400 font-semibold mb-3">
+            <Zap className="w-3.5 h-3.5 text-green-400" />
+            Simple 3-Step Process
+          </div>
+          <h2 className="text-2xl sm:text-4xl font-black text-white">How OpenStacker Works</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center">
+            <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-green-400 font-bold font-mono">
+              01
+            </div>
+            <h3 className="font-bold text-white text-base mb-2">Select Your Stack</h3>
+            <p className="text-zinc-400 text-xs leading-relaxed">
+              Pick the proprietary tools your team pays for every month (Slack, Notion, Zapier, etc.).
+            </p>
+          </div>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center">
+            <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-green-400 font-bold font-mono">
+              02
+            </div>
+            <h3 className="font-bold text-white text-base mb-2">Discover Swaps</h3>
+            <p className="text-zinc-400 text-xs leading-relaxed">
+              Get an instant breakdown of your annual software waste and community-vetted open-source alternatives.
+            </p>
+          </div>
+
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center">
+            <div className="w-10 h-10 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 text-green-400 font-bold font-mono">
+              03
+            </div>
+            <h3 className="font-bold text-white text-base mb-2">Self-Host & Save</h3>
+            <p className="text-zinc-400 text-xs leading-relaxed">
+              Use our migration playbooks to deploy open-source tools on a $5/mo VPS and cut your software bill to $0.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Migration Guides Teaser */}
       <section className="max-w-6xl mx-auto px-6 py-16 border-t border-zinc-800/60">
         <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
           <div className="max-w-xl">
@@ -142,7 +187,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* 7. FAQ Accordion */}
       <section className="max-w-4xl mx-auto px-6 py-16 border-t border-zinc-800/60">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-full text-xs text-zinc-400 font-semibold mb-3">
@@ -167,7 +212,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer CTA */}
+      {/* Footer Creator CTA */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <div className="border border-green-500/30 bg-gradient-to-r from-green-500/10 via-zinc-900 to-zinc-900 rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden">
           <h2 className="text-2xl sm:text-4xl font-black text-white mb-3">Built an open-source tool?</h2>
